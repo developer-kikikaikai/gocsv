@@ -349,7 +349,7 @@ func TestRenamedTypesMarshal(t *testing.T) {
 		return csvout
 	})
 	// Switch back to default for tests executed after this
-	defer SetCSVWriter(DefaultCSVWriter)
+	defer SetNewCSVWriter(DefaultCSVWriter)
 
 	csvContent, err := MarshalString(&samples)
 	if err != nil {
@@ -388,6 +388,39 @@ func TestCustomTagSeparatorMarshal(t *testing.T) {
 	}
 	if csvContent != "foo|bar\n1,4|1.5\n2,3|2.4\n" {
 		t.Fatalf("Error marshaling floats with , as separator. Expected \nfoo|bar\n1,4|1.5\n2,3|2.4\ngot:\n%v", csvContent)
+	}
+}
+
+// TestSetCSVWriter for interface to update writer
+func TestSetCSVWriterForInterface(t *testing.T) {
+	samples := []RenamedSample{
+		{RenamedFloatUnmarshaler: 1.4, RenamedFloatDefault: 1.5},
+		{RenamedFloatUnmarshaler: 2.3, RenamedFloatDefault: 2.4},
+	}
+
+	//before updating
+	csvContent, err := MarshalString(&samples)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if csvContent != "foo,bar\n\"1,4\",1.5\n\"2,3\",2.4\n" {
+		t.Fatalf("Error marshaling floats with , as separator. Expected \nfoo,bar\n\"1,4\",1.5\n\"2,3\",2.4\ngot:\n%v", csvContent)
+	}
+
+	SetNewCSVWriter(func(out io.Writer) CSVWriter {
+		csvout := NewSafeCSVWriter(csv.NewWriter(out))
+		csvout.Comma = ';'
+		return csvout
+	})
+	// Switch back to default for tests executed after this
+	defer SetNewCSVWriter(DefaultCSVWriter)
+
+	csvContent, err = MarshalString(&samples)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if csvContent != "foo;bar\n1,4;1.5\n2,3;2.4\n" {
+		t.Fatalf("Error marshaling floats with , as separator. Expected \nfoo;bar\n1,4;1.5\n2,3;2.4\ngot:\n%v", csvContent)
 	}
 }
 

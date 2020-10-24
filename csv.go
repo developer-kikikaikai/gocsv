@@ -62,7 +62,7 @@ func SetHeaderNormalizer(f Normalizer) {
 var selfCSVWriter = DefaultCSVWriter
 
 // DefaultCSVWriter is the default SafeCSVWriter used to format CSV (cf. csv.NewWriter)
-func DefaultCSVWriter(out io.Writer) *SafeCSVWriter {
+func DefaultCSVWriter(out io.Writer) CSVWriter {
 	writer := NewSafeCSVWriter(csv.NewWriter(out))
 
 	// As only one rune can be defined as a CSV separator, we are going to trim
@@ -76,11 +76,17 @@ func DefaultCSVWriter(out io.Writer) *SafeCSVWriter {
 
 // SetCSVWriter sets the SafeCSVWriter used to format CSV.
 func SetCSVWriter(csvWriter func(io.Writer) *SafeCSVWriter) {
-	selfCSVWriter = csvWriter
+	selfCSVWriter = func(out io.Writer) CSVWriter {
+		return csvWriter(out)
+	}
 }
 
-func getCSVWriter(out io.Writer) *SafeCSVWriter {
+func getCSVWriter(out io.Writer) CSVWriter {
 	return selfCSVWriter(out)
+}
+
+func SetNewCSVWriter(csvWriter func(io.Writer) CSVWriter) {
+	selfCSVWriter = csvWriter
 }
 
 // --------------------------------------------------------------------------
@@ -361,7 +367,7 @@ func UnmarshalToCallbackWithError(in io.Reader, f interface{}) error {
 		}
 		v, notClosed := c.Recv()
 		if !notClosed || v.Interface() == nil {
-			if err := <- cerr; err != nil {
+			if err := <-cerr; err != nil {
 				fErr = err
 			}
 			break
